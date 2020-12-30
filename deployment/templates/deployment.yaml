@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}
+  labels:
+    app: {{ .Release.Name }}
+    chart: {{ .Chart.Name }}
+spec:
+{{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.replicaCount }}
+{{- end }}
+  selector:
+    matchLabels:
+      app: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Release.Name }}
+    spec:
+      imagePullSecrets:
+      - name: image-pull-secret
+      containers:
+        - name: web
+          image: {{ .Values.container.image.repository }}:{{ .Values.container.image.tag }}
+          command: [ "/bin/sh","-c", {{ quote .Values.container.command }} ]
+          imagePullPolicy: IfNotPresent
+          ports:
+          - name: http
+            protocol: TCP
+            containerPort: {{ .Values.container.port }}
+          env:
+          {{- range $k,$v := .Values.env }}
+          - name: {{ $k }}
+            value: {{ $v | quote }}
+          {{- end }}
+          resources:
+          {{- toYaml .Values.resources | nindent 12 }}
+
